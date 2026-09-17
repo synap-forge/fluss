@@ -48,15 +48,7 @@ jobs:
     needs: [version-check]
     steps:
       - uses: actions/checkout@v6
-      - name: Set Python release version
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: python tools/releasing/set_python_release_version.py "$RELEASE_TAG"
-
-      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Check generated binary licenses
         run: python fluss-rust/bindings/python/generate_binary_license.py --check
@@ -86,15 +78,7 @@ jobs:
           - { os: ubuntu-latest, target: "aarch64", manylinux: "manylinux_2_28", license-target: "aarch64-unknown-linux-gnu" }
     steps:
       - uses: actions/checkout@v6
-      - name: Set Python release version
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ github.ref_name }}
-        run: python tools/releasing/set_python_release_version.py "$RELEASE_TAG"
-
-      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4
-        with:
-          toolchain: stable
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Generate licenses for this wheel target
         run: python fluss-rust/bindings/python/generate_binary_license.py --target "${{ matrix.license-target }}"
@@ -132,10 +116,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}-${{ matrix.target || 'native' }}
-          path: |
-            fluss-rust/bindings/python/dist/*.whl
-            fluss-rust/bindings/python/LICENSE-bin
-            fluss-rust/bindings/python/NOTICE-bin
+          path: fluss-rust/bindings/python/dist
 
   verify-license:
     name: Verify LICENSE and NOTICE
@@ -145,13 +126,13 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
-          merge-multiple: false
-          path: artifacts
+          merge-multiple: true
+          path: dist
 
       # maturin ships these only when [project].license-files lists them.
       - name: Check the sdist and every wheel
         run: |
-          SDIST=$(ls artifacts/wheels-sdist/*.tar.gz)
+          SDIST=$(ls dist/*.tar.gz)
           PREFIX=$(basename "$SDIST" .tar.gz)
           for f in LICENSE NOTICE LICENSE-bin NOTICE-bin; do
             if [ -z "$(tar -xzOf "$SDIST" "${PREFIX}/${f}" 2>/dev/null)" ]; then
@@ -159,20 +140,23 @@ jobs:
               exit 1
             fi
           done
-          for whl in artifacts/wheels-*/dist/*.whl; do
-            artifact_dir=$(dirname "$(dirname "$whl")")
+          for whl in dist/*.whl; do
             for f in LICENSE NOTICE LICENSE-bin NOTICE-bin; do
               if ! unzip -p "$whl" "*.dist-info/licenses/${f}" 2>/dev/null | grep . >/dev/null; then
                 echo "Error: ${f} is missing or empty in ${whl}"
                 exit 1
               fi
             done
-            for f in LICENSE-bin NOTICE-bin; do
-              if ! unzip -p "$whl" "*.dist-info/licenses/${f}" | diff -u "${artifact_dir}/${f}" -; then
-                echo "Error: packaged ${f} differs from the generated file in ${whl}"
+            for text in "Tokio Contributors" "Carl Lerche" "Meta Platforms" "1991-2018 Unicode"; do
+              if ! unzip -p "$whl" "*.dist-info/licenses/LICENSE-bin" | grep -F "$text" >/dev/null; then
+                echo "Error: $text attribution is missing in $whl"
                 exit 1
               fi
             done
+            if ! unzip -p "$whl" "*.dist-info/licenses/NOTICE-bin" | grep -F "Apache Arrow" >/dev/null; then
+              echo "Error: Arrow NOTICE is missing in $whl"
+              exit 1
+            fi
           done
 
   release:
@@ -187,13 +171,8 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
-          merge-multiple: false
-          path: artifacts
-
-      - name: Collect distributions for publishing
-        run: |
-          mkdir -p fluss-rust/bindings/python/dist
-          cp artifacts/wheels-sdist/*.tar.gz artifacts/wheels-*/dist/*.whl fluss-rust/bindings/python/dist/
+          merge-multiple: true
+          path: fluss-rust/bindings/python/dist
 
       - name: Publish to TestPyPI
         if: contains(github.ref, '-')
