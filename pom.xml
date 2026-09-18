@@ -76,7 +76,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <target.java.version>11</target.java.version>
+        <target.java.version>21</target.java.version>
         <maven.compiler.source>${target.java.version}</maven.compiler.source>
         <maven.compiler.target>${target.java.version}</maven.compiler.target>
         <test.unit.pattern>**/*Test.*</test.unit.pattern>
@@ -121,7 +121,7 @@
         <roaster.version>2.22.2.Final</roaster.version>
         <jmh.version>1.27</jmh.version>
 
-        <spotless.version>2.27.1</spotless.version>
+            <spotless.version>2.43.0</spotless.version>
         <spotless.scalafmt.version>3.4.3</spotless.scalafmt.version>
         <spotless.delimiter>package</spotless.delimiter>
         <spotless.license.header>
@@ -147,6 +147,7 @@
           plugin executes before, the property is undefined and makes the tests fail. Thus we define an empty property
           here to make sure it doesn't fail. See also https://issues.apache.org/jira/browse/SUREFIRE-1431 -->
         <argLine/>
+                <surefire.module.config/>
         <extraJavaTestArgs>
             -XX:+IgnoreUnrecognizedVMOptions
             --add-opens=java.base/java.lang=ALL-UNNAMED
@@ -449,31 +450,6 @@
 
     <profiles>
         <profile>
-            <id>java8</id>
-            <properties>
-                <target.java.version>1.8</target.java.version>
-                <skip.on.java8>true</skip.on.java8>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>${target.java.version}</source>
-                            <target>${target.java.version}</target>
-                            <useIncrementalCompilation>false</useIncrementalCompilation>
-                            <compilerArgs >
-                                <!-- Prevents recompilation due to missing package-info.class, see MCOMPILER-205 -->
-                                <arg>-Xpkginfo:always</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
             <id>test-coverage</id>
             <properties>
                 <test.skip.coverage>false</test.skip.coverage>
@@ -566,7 +542,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
+                <version>3.11.0</version>
                 <configuration>
                     <source>${target.java.version}</source>
                     <target>${target.java.version}</target>
@@ -732,7 +708,7 @@
                         <junit.jupiter.execution.parallel.config.strategy>dynamic
                         </junit.jupiter.execution.parallel.config.strategy>
                     </systemPropertyVariables>
-                    <argLine>@{argLine} -Xms256m -Xmx2048m -XX:+UseG1GC ${extraJavaTestArgs}</argLine>
+                    <argLine>@{argLine} -Xms256m -Xmx2048m -XX:+UseG1GC ${extraJavaTestArgs} ${surefire.module.config}</argLine>
                 </configuration>
                 <executions>
                     <!--execute all the unit tests-->
@@ -970,7 +946,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.8.0</version>
+                    <version>3.11.0</version>
                     <configuration>
                         <!-- Make sure that we only use Java 8 compatible APIs -->
                         <source>${target.java.version}</source>
@@ -1022,7 +998,7 @@
                         <skip>${skip.on.java8}</skip>
                         <java>
                             <googleJavaFormat>
-                                <version>1.15.0</version>
+                                <version>1.19.2</version>
                                 <style>AOSP</style>
                             </googleJavaFormat>
 
@@ -1109,7 +1085,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.4.1</version>
+                    <version>3.5.0</version>
                 </plugin>
 
                 <plugin>

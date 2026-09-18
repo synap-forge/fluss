@@ -17,6 +17,25 @@
 
 package org.apache.fluss.server.replica;
 
+import java.io.File;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import javax.annotation.Nullable;
+
 import org.apache.fluss.cluster.Endpoint;
 import org.apache.fluss.cluster.ServerType;
 import org.apache.fluss.config.ConfigOption;
@@ -30,10 +49,33 @@ import org.apache.fluss.metadata.TableBucket;
 import org.apache.fluss.metadata.TableDescriptor;
 import org.apache.fluss.metadata.TableInfo;
 import org.apache.fluss.metadata.TablePath;
+import org.apache.fluss.metrics.registry.NOPMetricRegistry;
 import org.apache.fluss.record.MemoryLogRecords;
+import static org.apache.fluss.record.TestData.DATA1;
+import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH;
+import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH_PA_2024;
+import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH_PK_PA_2024;
+import static org.apache.fluss.record.TestData.DATA1_SCHEMA;
+import static org.apache.fluss.record.TestData.DATA1_SCHEMA_PK;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_DESCRIPTOR_PK;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_ID;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_ID_PK;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_INFO;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_PATH;
+import static org.apache.fluss.record.TestData.DATA1_TABLE_PATH_PK;
+import static org.apache.fluss.record.TestData.DATA2_SCHEMA;
+import static org.apache.fluss.record.TestData.DATA2_TABLE_DESCRIPTOR;
+import static org.apache.fluss.record.TestData.DATA2_TABLE_ID;
+import static org.apache.fluss.record.TestData.DATA2_TABLE_PATH;
+import static org.apache.fluss.record.TestData.DATA3_SCHEMA_PK_AUTO_INC;
+import static org.apache.fluss.record.TestData.DATA3_TABLE_DESCRIPTOR_PK_AUTO_INC;
+import static org.apache.fluss.record.TestData.DATA3_TABLE_ID_PK_AUTO_INC;
+import static org.apache.fluss.record.TestData.DATA3_TABLE_PATH_PK_AUTO_INC;
+import static org.apache.fluss.record.TestData.DEFAULT_REMOTE_DATA_DIR;
 import org.apache.fluss.rpc.RpcClient;
 import org.apache.fluss.rpc.gateway.CoordinatorGateway;
 import org.apache.fluss.rpc.metrics.TestingClientMetricGroup;
+import static org.apache.fluss.server.coordinator.CoordinatorContext.INITIAL_COORDINATOR_EPOCH;
 import org.apache.fluss.server.coordinator.LakeCatalogDynamicLoader;
 import org.apache.fluss.server.coordinator.MetadataManager;
 import org.apache.fluss.server.coordinator.TestCoordinatorGateway;
@@ -57,81 +99,41 @@ import org.apache.fluss.server.metadata.ClusterMetadata;
 import org.apache.fluss.server.metadata.ServerInfo;
 import org.apache.fluss.server.metadata.TabletServerMetadataCache;
 import org.apache.fluss.server.metrics.group.BucketMetricGroup;
+import org.apache.fluss.server.metrics.group.TabletServerMetricGroup;
 import org.apache.fluss.server.metrics.group.TestingMetricGroups;
+import static org.apache.fluss.server.replica.ReplicaManager.HIGH_WATERMARK_CHECKPOINT_FILE_NAME;
 import org.apache.fluss.server.storage.LocalDiskManager;
 import org.apache.fluss.server.testutils.ServerTestTags;
 import org.apache.fluss.server.zk.NOPErrorHandler;
 import org.apache.fluss.server.zk.ZooKeeperClient;
 import org.apache.fluss.server.zk.ZooKeeperExtension;
 import org.apache.fluss.server.zk.data.LeaderAndIsr;
+import static org.apache.fluss.server.zk.data.LeaderAndIsr.INITIAL_BUCKET_EPOCH;
+import static org.apache.fluss.server.zk.data.LeaderAndIsr.INITIAL_LEADER_EPOCH;
 import org.apache.fluss.server.zk.data.TableRegistration;
+import static org.apache.fluss.testutils.DataTestUtils.genMemoryLogRecordsWithWriterId;
 import org.apache.fluss.testutils.common.AllCallbackWrapper;
 import org.apache.fluss.testutils.common.ManuallyTriggeredScheduledExecutorService;
 import org.apache.fluss.utils.CloseableRegistry;
+import static org.apache.fluss.utils.FlussPaths.remoteLogDir;
+import static org.apache.fluss.utils.FlussPaths.remoteLogTabletDir;
 import org.apache.fluss.utils.clock.ManualClock;
 import org.apache.fluss.utils.concurrent.FlussScheduler;
 import org.apache.fluss.utils.function.FunctionWithException;
 import org.apache.fluss.utils.function.ThrowingRunnable;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.api.io.TempDir;
-
-import javax.annotation.Nullable;
-
-import java.io.File;
-import java.io.IOException;
-import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static org.apache.fluss.record.TestData.DATA1;
-import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH;
-import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH_PA_2024;
-import static org.apache.fluss.record.TestData.DATA1_PHYSICAL_TABLE_PATH_PK_PA_2024;
-import static org.apache.fluss.record.TestData.DATA1_SCHEMA;
-import static org.apache.fluss.record.TestData.DATA1_SCHEMA_PK;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_DESCRIPTOR_PK;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_ID;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_ID_PK;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_INFO;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_PATH;
-import static org.apache.fluss.record.TestData.DATA1_TABLE_PATH_PK;
-import static org.apache.fluss.record.TestData.DATA2_SCHEMA;
-import static org.apache.fluss.record.TestData.DATA2_TABLE_DESCRIPTOR;
-import static org.apache.fluss.record.TestData.DATA2_TABLE_ID;
-import static org.apache.fluss.record.TestData.DATA2_TABLE_PATH;
-import static org.apache.fluss.record.TestData.DATA3_SCHEMA_PK_AUTO_INC;
-import static org.apache.fluss.record.TestData.DATA3_TABLE_DESCRIPTOR_PK_AUTO_INC;
-import static org.apache.fluss.record.TestData.DATA3_TABLE_ID_PK_AUTO_INC;
-import static org.apache.fluss.record.TestData.DATA3_TABLE_PATH_PK_AUTO_INC;
-import static org.apache.fluss.record.TestData.DEFAULT_REMOTE_DATA_DIR;
-import static org.apache.fluss.server.coordinator.CoordinatorContext.INITIAL_COORDINATOR_EPOCH;
-import static org.apache.fluss.server.replica.ReplicaManager.HIGH_WATERMARK_CHECKPOINT_FILE_NAME;
-import static org.apache.fluss.server.zk.data.LeaderAndIsr.INITIAL_BUCKET_EPOCH;
-import static org.apache.fluss.server.zk.data.LeaderAndIsr.INITIAL_LEADER_EPOCH;
-import static org.apache.fluss.testutils.DataTestUtils.genMemoryLogRecordsWithWriterId;
-import static org.apache.fluss.utils.FlussPaths.remoteLogDir;
-import static org.apache.fluss.utils.FlussPaths.remoteLogTabletDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 /**
  * Test base class for {@link Replica}, {@link ReplicaManager} and related operations related
  * function managed by {@link ReplicaManager}.
  */
+@ResourceLock("replica-test-zookeeper")
 public class ReplicaTestBase {
 
     @RegisterExtension
@@ -141,6 +143,9 @@ public class ReplicaTestBase {
     protected static final int TABLET_SERVER_ID = 1;
     private static final String TABLET_SERVER_RACK = "rack1";
     protected static ZooKeeperClient zkClient;
+    private final TabletServerMetricGroup tabletServerMetricGroup =
+            new TabletServerMetricGroup(
+                    NOPMetricRegistry.INSTANCE, "fluss", "host", TABLET_SERVER_RACK, 0);
 
     // to register all should be closed after each test
     private final CloseableRegistry closeableRegistry = new CloseableRegistry();
@@ -228,7 +233,7 @@ public class ReplicaTestBase {
                         zkClient,
                         scheduler,
                         manualClock,
-                        TestingMetricGroups.TABLET_SERVER_METRICS,
+                        tabletServerMetricGroup,
                         localDiskManager);
         logManager.startup();
 
@@ -237,7 +242,7 @@ public class ReplicaTestBase {
                         conf,
                         zkClient,
                         logManager,
-                        TestingMetricGroups.TABLET_SERVER_METRICS,
+                        tabletServerMetricGroup,
                         localDiskManager,
                         createTestKvFlushScheduler(conf),
                         manualClock);
@@ -368,7 +373,7 @@ public class ReplicaTestBase {
                 coordinatorGateway,
                 snapshotReporter,
                 NOPErrorHandler.INSTANCE,
-                TestingMetricGroups.TABLET_SERVER_METRICS,
+                tabletServerMetricGroup,
                 TestingMetricGroups.USER_METRICS,
                 remoteLogManager,
                 scannerManager,
@@ -569,6 +574,12 @@ public class ReplicaTestBase {
                 replicaManager
                         .getServerMetricGroup()
                         .addTableBucketMetricGroup(physicalTablePath, tableBucket, isPkTable);
+        closeableRegistry.registerCloseable(
+                () ->
+                        replicaManager
+                                .getServerMetricGroup()
+                                .removeTableBucketMetricGroup(
+                                        physicalTablePath.getTablePath(), tableBucket));
         return new Replica(
                 localDiskManager.selectDataDirForNewBucket(isPkTable),
                 physicalTablePath,
