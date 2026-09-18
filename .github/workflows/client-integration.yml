@@ -123,11 +123,11 @@ jobs:
           path: /tmp/fluss-dev.tar
           key: fluss-dev-image-${{ hashFiles('fluss-server/**', 'fluss-common/**', 'fluss-rpc/**', 'fluss-dist/**', 'docker/fluss/**', 'pom.xml') }}
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         if: steps.image-cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
           cache: maven
 
