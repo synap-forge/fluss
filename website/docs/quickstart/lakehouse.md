@@ -61,16 +61,16 @@ services:
       - rustfs-data:/data
     command: /data
   rustfs-init:
-    image: minio/mc
+    image: rustfs/rc:v0.1.36
     depends_on:
       - rustfs
     entrypoint: >
       /bin/sh -c "
-      until mc alias set rustfs http://rustfs:9000 rustfsadmin rustfsadmin; do
+      until rc alias set rustfs http://rustfs:9000 rustfsadmin rustfsadmin; do
         echo 'Waiting for RustFS...';
         sleep 1;
       done;
-      mc mb --ignore-existing rustfs/fluss;
+      rc mb --ignore-existing rustfs/fluss;
       "
   #end
   coordinator-server:
@@ -191,11 +191,18 @@ docker compose up -d
 ```
 This command automatically starts all the containers defined in the Docker Compose configuration in detached mode.
 
-Run
+Count the long-running containers (excluding the one-shot `rustfs-init` service and the
+interactive `sql-client` service):
+
 ```shell
-docker compose ps
+docker compose ps --status running --quiet \
+  rustfs coordinator-server tablet-server zookeeper jobmanager taskmanager | wc -l
 ```
-to check whether all containers are running properly.
+
+The expected output is `6`. The `rustfs-init` service should exit successfully, and the
+`sql-client` service may exit because no interactive terminal is attached. A lower
+number means that one or more long-running containers failed to start. Run
+`docker compose ps -a` to identify them.
 
 You can also visit http://localhost:8083/ to see if Flink is running normally.
 
@@ -250,16 +257,16 @@ services:
       - rustfs-data:/data
     command: /data
   rustfs-init:
-    image: minio/mc
+    image: rustfs/rc:v0.1.36
     depends_on:
       - rustfs
     entrypoint: >
       /bin/sh -c "
-      until mc alias set rustfs http://rustfs:9000 rustfsadmin rustfsadmin; do
+      until rc alias set rustfs http://rustfs:9000 rustfsadmin rustfsadmin; do
         echo 'Waiting for RustFS...';
         sleep 1;
       done;
-      mc mb --ignore-existing rustfs/fluss;
+      rc mb --ignore-existing rustfs/fluss;
       "
   #end
   postgres:
@@ -405,11 +412,18 @@ docker compose up -d
 ```
 This command automatically starts all the containers defined in the Docker Compose configuration in detached mode.
 
-Run
+Count the long-running containers (excluding the one-shot `rustfs-init` service and the
+interactive `sql-client` service):
+
 ```shell
-docker compose ps
+docker compose ps --status running --quiet \
+  rustfs postgres coordinator-server tablet-server zookeeper jobmanager taskmanager | wc -l
 ```
-to check whether all containers are running properly.
+
+The expected output is `7`. The `rustfs-init` service should exit successfully, and the
+`sql-client` service may exit because no interactive terminal is attached. A lower
+number means that one or more long-running containers failed to start. Run
+`docker compose ps -a` to identify them.
 
 You can also visit http://localhost:8083/ to see if Flink is running normally.
 
