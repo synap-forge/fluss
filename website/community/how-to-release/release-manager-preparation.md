@@ -15,8 +15,8 @@ Note: The following setup is a one-time configuration required for release prepa
 
 This release process is suggested to operate on MacOS or Linux systems, and the following tools are required:
 
-- Java 11
-- Apache Maven 3.8.6
+- Java 25
+- Apache Maven 3.9.16
 - GnuPG 2.x
 - Git
 - SVN

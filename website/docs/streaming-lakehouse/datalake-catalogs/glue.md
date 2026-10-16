@@ -60,7 +60,7 @@ flowchart TD
 
 ### Java Version
 
-Fluss requires **Java 11 or later**, with Java 17 recommended (see [Deploying Fluss](../../install-deploy/deploying-local-cluster.md)).
+Fluss requires **Java 25** (see [Deploying Fluss](../../install-deploy/deploying-local-cluster.md)).
 
 > **NOTE**: The 0.9.1 release binaries do not run on Java 11 — the Tablet Server fails with `NoSuchMethodError: MappedByteBuffer.duplicate()` because the release was compiled on a newer JDK. Use Java 17+ with the 0.9.1 binaries, or build Fluss from source on JDK 11.
 
@@ -241,8 +241,8 @@ This section shows the complete setup from a blank Linux machine to data queryab
 
 ```bash
 # — 1. Install prerequisites —
-# Java 17+ required (Amazon Corretto, OpenJDK, etc.)
-java -version  # Must show 17+
+# Java 25 required (Amazon Corretto, OpenJDK, etc.)
+java -version  # Must show 25
 
 # — 2. Install ZooKeeper —
 wget -q https://archive.apache.org/dist/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz

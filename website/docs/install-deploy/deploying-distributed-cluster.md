@@ -18,9 +18,8 @@ This doc provides a simple example of how to deploy a distributed cluster on fou
 
 ### Software Requirements
 
-Before you start to set up the system, make sure you have installed **Java 11** or higher **on each node** in your cluster.
-Java 8 is not supported as the released binary is compiled with Java 11.
-While Fluss can run on Java 11, **Java 17 or higher is strongly recommended** for better performance.
+Before you start to set up the system, make sure you have installed **Java 25** on each node in your cluster.
+Fluss binaries require Java 25 at runtime.
 
 Additionally, you need a running **ZooKeeper** cluster with version 3.6.0 or higher. 
 We do not recommend to use ZooKeeper versions below 3.6.0.

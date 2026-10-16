@@ -48,8 +48,9 @@ Before building the Docker image, ensure you have:
 
 1. Check out the code version that you want to use for the Docker image. Go to the project root directory and build Fluss using `./mvnw clean package -DskipTests`.
 The local build artifacts will be used for the Docker image.
-2. Docker installed and running
-3. Internet access for retrieving dependencies
+2. Build Flink with Java 25 and retain its unpacked distribution directory (for example, `/path/to/flink/build-target`).
+3. Docker installed and running
+4. Internet access for retrieving dependencies
 
 ## Build Process
 
@@ -64,7 +65,7 @@ First, prepare the required base and optional dependency directories:
 chmod +x prepare_build.sh
 
 # Run the preparation script
-./prepare_build.sh
+FLINK_DIST_DIR=/path/to/flink/build-target ./prepare_build.sh
 ```
 
 ### Step 2: Build Docker Image
@@ -82,6 +83,7 @@ After `prepare_build.sh` finishes, verify that the following directories exist:
 - `paimon/`
 - `iceberg/`
 - `opt/`
+- `flink/`
 
 If you are wiring the image into Docker Compose:
 

@@ -37,7 +37,8 @@ MODULES_FLINK2="\
 fluss-flink,\
 fluss-flink/fluss-flink-common,\
 fluss-flink/fluss-flink-2.2,\
-fluss-flink/fluss-flink-2.3\
+fluss-flink/fluss-flink-2.3,\
+fluss-flink/fluss-flink-tiering-2.3\
 "
 
 MODULES_COMMON_SPARK="\

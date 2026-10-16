@@ -60,7 +60,7 @@ flowchart TD
 
 ### Java Version
 
-Fluss requires **Java 11 or later**, with Java 17 recommended (see [Deploying Fluss](../../install-deploy/deploying-local-cluster.md)).
+Fluss requires **Java 25** (see [Deploying Fluss](../../install-deploy/deploying-local-cluster.md)).
 
 > **NOTE**: The 0.9.1 release binaries do not run on Java 11 — the Tablet Server fails with `NoSuchMethodError: MappedByteBuffer.duplicate()` because the release was compiled on a newer JDK. Use Java 17+ with the 0.9.1 binaries, or build Fluss from source on JDK 11.
 
@@ -186,7 +186,7 @@ services:
 
   # Downloads plugin JARs into a shared volume
   init-plugins:
-    image: amazoncorretto:17
+    image: amazoncorretto:25
     entrypoint: ["/bin/bash", "-c"]
     command:
       - |
@@ -271,7 +271,7 @@ services:
 
   # Flink: creates table, inserts data, starts tiering, reads back
   flink:
-    image: amazoncorretto:17
+    image: amazoncorretto:25
     depends_on:
       tablet-server: { condition: service_healthy }
       metastore: { condition: service_healthy }

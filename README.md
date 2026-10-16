@@ -65,9 +65,9 @@ Prerequisites for building Apache Fluss:
 - Unix-like environment (we use Linux, Mac OS X, Cygwin, WSL)
 - Git
 - Maven (we require version >= 3.9)
-- Java 21
+- Java 25
 
-Apache Fluss has been upgraded to Java 21. Use JDK 21 for development, builds, and runtime deployments.
+Apache Fluss requires Java 25. Use JDK 25 for development, builds, and runtime deployments.
 
 ```bash
 git clone https://github.com/apache/fluss.git

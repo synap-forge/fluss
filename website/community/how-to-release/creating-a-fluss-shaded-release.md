@@ -61,7 +61,7 @@ NEXT_VERSION="2.0"
 
 #### 2. Verify Java and Maven Version
 
-Run `mvn -v` and `java -version` on your local machine. All of the following steps require to use **Maven 3.8.6** and **Java 11**. Modify your `PATH` environment variable accordingly if needed.
+Run `mvn -v` and `java -version` on your local machine. All of the following steps require **Maven 3.9.16** and **Java 25**. Modify your `PATH` environment variable accordingly if needed.
 
 #### 3. Clone fluss-shaded into a fresh workspace
 

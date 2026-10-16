@@ -36,40 +36,11 @@ import org.apache.zookeeper.*                           // → org.apache.fluss.
 
 ### Java Version Compatibility
 
-**Source level: Java 8** — All code MUST compile with JDK 8. CI enforces this via `compile-on-jdk8`.
+**Source level: Java 25** — All code MUST compile and run with JDK 25.
 
-**Build requirement:** Java 11 is required to build the project, but all source code must remain Java 8 compatible.
+**Build requirement:** Java 25 is required to build the project and run its distributed artifacts.
 
-**FORBIDDEN Java 9+ features:**
-```java
-// ❌ var keyword (Java 10)
-var list = new ArrayList<>();  // → ✅ ArrayList<String> list = new ArrayList<>();
-
-// ❌ List.of(), Map.of(), Set.of() (Java 9)
-List.of("a", "b")              // → ✅ Arrays.asList("a", "b")
-Map.of("k", "v")               // → ✅ Collections.singletonMap("k", "v")
-Set.of("a", "b")               // → ✅ new HashSet<>(Arrays.asList("a", "b"))
-
-// ❌ Optional.isEmpty() (Java 11)
-optional.isEmpty()             // → ✅ !optional.isPresent()
-
-// ❌ String.strip(), String.isBlank() (Java 11)
-string.strip()                 // → ✅ string.trim()
-string.isBlank()               // → ✅ string.trim().isEmpty()
-
-// ❌ Stream.toList() (Java 16)
-stream.toList()                // → ✅ stream.collect(Collectors.toList())
-
-// ❌ Map.entry() (Java 9)
-Map.entry("k", "v")            // → ✅ new AbstractMap.SimpleEntry<>("k", "v")
-
-// ❌ InputStream.transferTo() (Java 9)
-inputStream.transferTo(out)    // → ✅ IOUtils.copyBytes(inputStream, out)
-
-// ❌ Switch expressions, text blocks, records, sealed classes, pattern matching
-```
-
-**FORBIDDEN language features:** Switch expressions (Java 12), text blocks (Java 13), records (Java 14), sealed classes (Java 17), pattern matching (Java 16+)
+**Language baseline:** Java 25 language and library features are permitted. Do not use preview features unless the project explicitly enables them in compilation and runtime configuration.
 
 ### Testing
 
@@ -363,7 +334,7 @@ public static final FlussClusterExtension FLUSS_CLUSTER_EXTENSION =
 
 ### Quick Start (Deployment)
 
-**Prerequisites:** Java 11, Maven 3.8.6+, Unix-like environment
+**Prerequisites:** Java 25, Maven 3.9.16+, Unix-like environment
 
 **Build from source:**
 ```bash
@@ -394,7 +365,7 @@ cd fluss
 ### CI Pipeline
 
 **CI stages:** compile-on-jdk8 → core (excludes Flink/Spark/Lake) → flink → spark3 → lake (`.github/workflows/ci.yaml`)
-**Java:** Build on Java 11 (required); runtime Java 8 compatible
+**Java:** Build and run on Java 25
 
 **Test coverage:** `./mvnw verify -Ptest-coverage` → view `fluss-test-coverage/target/site/jacoco-aggregate/index.html`
 **License headers:** Apache 2.0 required (enforced by RAT); check with `./mvnw validate`
@@ -522,3 +493,16 @@ The `--web` flag opens browser for final review before submission.
 5. Self-review completed (Section 12)
 
 **When in doubt:** Ask the user before proceeding with potentially destructive or far-reaching changes.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- Dirty graphify-out/ files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

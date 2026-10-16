@@ -76,7 +76,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <target.java.version>21</target.java.version>
+        <target.java.version>25</target.java.version>
         <maven.compiler.source>${target.java.version}</maven.compiler.source>
         <maven.compiler.target>${target.java.version}</maven.compiler.target>
         <test.unit.pattern>**/*Test.*</test.unit.pattern>
@@ -121,7 +121,7 @@
         <roaster.version>2.22.2.Final</roaster.version>
         <jmh.version>1.27</jmh.version>
 
-            <spotless.version>2.43.0</spotless.version>
+            <spotless.version>3.10.4</spotless.version>
         <spotless.scalafmt.version>3.4.3</spotless.scalafmt.version>
         <spotless.delimiter>package</spotless.delimiter>
         <spotless.license.header>
@@ -542,7 +542,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.14.1</version>
                 <configuration>
                     <source>${target.java.version}</source>
                     <target>${target.java.version}</target>
@@ -642,6 +642,7 @@
                         <!-- Generated content -->
                         <exclude>**/target/**</exclude>
                         <exclude>build-target/**</exclude>
+                        <exclude>graphify-out/**</exclude>
                         <exclude>**/scalastyle-output.xml</exclude>
                         <exclude>**/*.svg</exclude>
                         <exclude>**/dependency-reduced-pom.xml</exclude>
@@ -677,7 +678,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M5</version>
+                <version>3.5.4</version>
                 <configuration>
                     <forkCount>${fluss.forkCount}</forkCount>
                     <reuseForks>${fluss.reuseForks}</reuseForks>
@@ -946,7 +947,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.11.0</version>
+                    <version>3.14.1</version>
                     <configuration>
                         <!-- Make sure that we only use APIs compatible with the target Java version. -->
                         <source>${target.java.version}</source>
@@ -998,7 +999,7 @@
                         <skip>${skip.on.java8}</skip>
                         <java>
                             <googleJavaFormat>
-                                <version>1.19.2</version>
+                                <version>1.30.0</version>
                                 <style>AOSP</style>
                             </googleJavaFormat>
 
@@ -1037,7 +1038,7 @@
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
-                    <version>0.8.11</version>
+                    <version>0.8.15</version>
                     <configuration>
                         <skip>${test.skip.coverage}</skip>
                     </configuration>
@@ -1078,14 +1079,14 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M5</version>
+                    <version>3.5.4</version>
                 </plugin>
 
                 <!-- Pin the version of the maven shade plugin -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.5.0</version>
+                    <version>3.6.2</version>
                 </plugin>
 
                 <plugin>

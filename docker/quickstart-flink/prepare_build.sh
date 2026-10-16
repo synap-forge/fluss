@@ -23,6 +23,7 @@ set -e
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+FLINK_DIST_DIR="${FLINK_DIST_DIR:-}"
 
 # Logging functions
 log_info() {
@@ -141,6 +142,12 @@ check_prerequisites() {
         fi
     done
 
+    if [ -z "$FLINK_DIST_DIR" ] || [ ! -d "$FLINK_DIST_DIR/bin" ] || [ ! -d "$FLINK_DIST_DIR/lib" ]; then
+        log_error "FLINK_DIST_DIR must point to a Java 25 Flink distribution containing bin/ and lib/"
+        log_error "For example: FLINK_DIST_DIR=/path/to/flink/build-target ./prepare_build.sh"
+        exit 1
+    fi
+
     log_success "All prerequisites met"
 }
 
@@ -154,8 +161,9 @@ main() {
 
     # Clean and create directories
     log_info "Setting up directories..."
-    rm -rf lib paimon iceberg opt
+    rm -rf lib paimon iceberg opt flink
     mkdir -p lib paimon iceberg opt
+    cp -RL "$FLINK_DIST_DIR" flink
 
     # Base quickstart dependencies. These are always copied into /opt/flink/lib
     # so the regular Flink quickstart works without any extra setup.
@@ -220,9 +228,13 @@ main() {
         "" \
         "postgresql-42.7.4"
 
-    # Prepare lake tiering JAR
+    # Prepare lake tiering JAR. Prefer the current Flink 2.3 variant when it has been built.
     log_info "Preparing lake tiering JAR..."
-    copy_jar "$PROJECT_ROOT/fluss-flink/fluss-flink-tiering/target/fluss-flink-tiering-*.jar" "./opt" "fluss-flink-tiering"
+    if compgen -G "$PROJECT_ROOT/fluss-flink/fluss-flink-tiering-2.3/target/fluss-flink-tiering-2.3-*.jar" > /dev/null; then
+        copy_jar "$PROJECT_ROOT/fluss-flink/fluss-flink-tiering-2.3/target/fluss-flink-tiering-2.3-*.jar" "./opt" "fluss-flink-tiering-2.3"
+    else
+        copy_jar "$PROJECT_ROOT/fluss-flink/fluss-flink-tiering/target/fluss-flink-tiering-*.jar" "./opt" "fluss-flink-tiering"
+    fi
 
     # Final verification
     verify_jars

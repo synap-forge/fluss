@@ -115,12 +115,17 @@ public abstract class ServerITCaseBase {
         CommonTestUtils.waitUntil(
                 () ->
                         process.getProcessOutput().toString().contains(SERVER_STARTED_MARKER)
-                                || !process.getErrorOutput().toString().isEmpty(),
+                                || !process.getProcess().isAlive(),
                 Duration.ofMinutes(2),
-                null);
-        String errorMsg = process.getErrorOutput().toString();
-        if (!errorMsg.isEmpty()) {
-            throw new IllegalStateException("Server process failed to start: " + errorMsg);
+                "Server process did not report startup within two minutes.");
+        if (!process.getProcess().isAlive()) {
+            throw new IllegalStateException(
+                    "Server process exited before startup with exit code "
+                            + process.getProcess().exitValue()
+                            + ": "
+                            + process.getErrorOutput()
+                            + "\n"
+                            + process.getProcessOutput());
         }
     }
 
